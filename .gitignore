@@ -1,0 +1,32 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+.env
+
+# Packaging/distribution
+build/
+dist/
+*.egg-info/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# OS-specific clutter
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Logs and coverage
+*.log
+coverage*
+htmlcov/
+.coverage

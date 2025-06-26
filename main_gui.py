@@ -132,19 +132,26 @@ class DesktopCleanerGUI(QMainWindow):
         
         # Title
         title_label = QLabel("Desktop Items")
-        title_label.setFont(QFont("Arial", 14, QFont.Bold))
+        title_font = QFont()
+        title_font.setPointSize(14)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
         control_layout.addWidget(title_label)
         
         # Current item info
         self.current_item_label = QLabel("No items found")
         self.current_item_label.setWordWrap(True)
-        self.current_item_label.setFont(QFont("Arial", 10))
+        item_font = QFont()
+        item_font.setPointSize(10)
+        self.current_item_label.setFont(item_font)
         control_layout.addWidget(self.current_item_label)
         
         # Position info
         self.position_label = QLabel("Position: 0/0")
-        self.position_label.setFont(QFont("Arial", 9))
+        position_font = QFont()
+        position_font.setPointSize(9)
+        self.position_label.setFont(position_font)
         control_layout.addWidget(self.position_label)
         
         # Progress bar
@@ -199,7 +206,10 @@ class DesktopCleanerGUI(QMainWindow):
         
         # Preview title
         preview_title = QLabel("Preview")
-        preview_title.setFont(QFont("Arial", 14, QFont.Bold))
+        preview_font = QFont()
+        preview_font.setPointSize(14)
+        preview_font.setBold(True)
+        preview_title.setFont(preview_font)
         preview_title.setAlignment(Qt.AlignCenter)
         preview_layout.addWidget(preview_title)
         
@@ -211,7 +221,9 @@ class DesktopCleanerGUI(QMainWindow):
         # Default preview widget
         self.default_preview = QLabel("No item selected")
         self.default_preview.setAlignment(Qt.AlignCenter)
-        self.default_preview.setFont(QFont("Arial", 12))
+        default_font = QFont()
+        default_font.setPointSize(12)
+        self.default_preview.setFont(default_font)
         self.preview_scroll.setWidget(self.default_preview)
         
         preview_layout.addWidget(self.preview_scroll)
@@ -219,7 +231,9 @@ class DesktopCleanerGUI(QMainWindow):
         # Metadata label
         self.metadata_label = QLabel("No metadata available")
         self.metadata_label.setWordWrap(True)
-        self.metadata_label.setFont(QFont("Arial", 9))
+        metadata_font = QFont()
+        metadata_font.setPointSize(9)
+        self.metadata_label.setFont(metadata_font)
         self.metadata_label.setMaximumHeight(100)
         preview_layout.addWidget(self.metadata_label)
         
@@ -713,7 +727,25 @@ State file location: {self.persistence_manager.state_file_path}"""
 
 def main():
     """Main application entry point."""
+    # Set Qt environment variables to reduce font warnings
+    import os
+    os.environ['QT_LOGGING_RULES'] = 'qt.qpa.fonts.debug=false'
+    
     app = QApplication(sys.argv)
+    
+    # Configure Qt font settings to avoid SF Pro Display warning
+    from PyQt5.QtGui import QFontDatabase
+    
+    # Set font substitutions to prevent Qt from trying to use SF Pro Display
+    QFont.insertSubstitution("SF Pro Display", "Helvetica")
+    QFont.insertSubstitution(".SF NS Text", "Helvetica")
+    QFont.insertSubstitution(".SF NS Display", "Helvetica")
+    
+    # Set a default font that's guaranteed to exist on macOS
+    default_font = QFont()
+    default_font.setFamily("Helvetica")
+    default_font.setPointSize(13)  # Standard macOS size
+    app.setFont(default_font)
     
     # Set application metadata
     app.setApplicationName("Desktop Cleaner")

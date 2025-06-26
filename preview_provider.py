@@ -178,7 +178,10 @@ class TextPreview:
                 content = content[:1000] + "..."
             
             widget = QLabel(content)
-            widget.setFont(QFont("Courier", 9))
+            text_font = QFont()
+            text_font.setPointSize(9)
+            text_font.setFamily("Monaco")  # Use Monaco, a monospace font available on macOS
+            widget.setFont(text_font)
             widget.setWordWrap(True)
             widget.setAlignment(Qt.AlignTop | Qt.AlignLeft)
             
@@ -222,7 +225,10 @@ class DirectoryPreview:
             # Directory name
             dir_name = os.path.basename(self.dir_path) or "Desktop"
             name_label = QLabel(dir_name)
-            name_label.setFont(QFont("SF Pro Display", 14, QFont.Bold))
+            name_font = QFont()
+            name_font.setPointSize(14)
+            name_font.setBold(True)
+            name_label.setFont(name_font)
             name_label.setAlignment(Qt.AlignCenter)
             name_label.setStyleSheet("color: #333; margin-bottom: 5px;")
             layout.addWidget(name_label)
@@ -236,7 +242,9 @@ class DirectoryPreview:
             
             # Item count
             count_label = QLabel(f"{len(entries)} items")
-            count_label.setFont(QFont("SF Pro Display", 11))
+            count_font = QFont()
+            count_font.setPointSize(11)
+            count_label.setFont(count_font)
             count_label.setAlignment(Qt.AlignCenter)
             count_label.setStyleSheet("color: #666; margin-bottom: 10px;")
             layout.addWidget(count_label)
@@ -261,7 +269,9 @@ class DirectoryPreview:
                 content = '\n'.join(file_list_text)
                 
                 files_label = QLabel(content)
-                files_label.setFont(QFont("SF Pro Text", 10))
+                files_font = QFont()
+                files_font.setPointSize(10)
+                files_label.setFont(files_font)
                 files_label.setWordWrap(True)
                 files_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
                 files_label.setStyleSheet("""
@@ -334,6 +344,8 @@ class GenericPreview:
         except Exception as e:
             widget = QLabel("?")
             widget.setAlignment(Qt.AlignCenter)
-            widget.setFont(QFont("Arial", 24))
+            error_font = QFont()
+            error_font.setPointSize(24)
+            widget.setFont(error_font)
             return widget, f"Error: {str(e)}"
 

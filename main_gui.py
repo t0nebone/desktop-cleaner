@@ -538,12 +538,11 @@ class DesktopCleanerGUI(QMainWindow):
         
         # Remove current item from the iterator's items list
         current_index = self.iterator.get_current_index()
-        if current_index < len(self.iterator.items):
+        if 0 <= current_index < len(self.iterator.items):
             self.iterator.items.pop(current_index)
             
-            # Adjust current index if we're at the end
-            if current_index >= len(self.iterator.items) and self.iterator.items:
-                self.iterator.current_index = len(self.iterator.items) - 1
+            # Ensure index remains valid after removal
+            self.iterator._ensure_valid_index()
             
             # Update UI and load preview
             self.update_ui()
@@ -612,6 +611,8 @@ class DesktopCleanerGUI(QMainWindow):
         """Handle application close event."""
         # Save the iterator state on close
         if self.iterator:
+            # Ensure index is valid before saving
+            self.iterator._ensure_valid_index()
             items = self.iterator.items
             current_index = self.iterator.get_current_index()
             self.persistence_manager.save_iterator_state(items, current_index)

@@ -29,20 +29,26 @@ class DesktopItemIterator:
             return
         
         try:
+            # If we're doing a fresh scan (not loading from state), start with empty list
+            if not hasattr(self, '_state_loaded_from_file') or not self._state_loaded_from_file:
+                fresh_items = []
+            else:
+                # If state was loaded from file, don't rescan - just return
+                return
+            
             for item in self.desktop_path.iterdir():
                 # Skip invisible/system files
                 if self._should_skip_file(item.name):
                     continue
                 
                 # Store absolute path
-                self.items.append(str(item.absolute()))
+                fresh_items.append(str(item.absolute()))
             
             # Sort items for consistent ordering
-            self.items.sort()
+            fresh_items.sort()
             
-            # Filter out already handled items if this is a fresh scan
-            if not hasattr(self, '_state_loaded_from_file') or not self._state_loaded_from_file:
-                self.items = self.persistence_manager.filter_unhandled_items(self.items)
+            # Filter out already handled items for fresh scans
+            self.items = self.persistence_manager.filter_unhandled_items(fresh_items)
             
         except PermissionError:
             print(f"Permission denied accessing {self.desktop_path}")
@@ -66,7 +72,13 @@ class DesktopItemIterator:
             # Filter out items that no longer exist
             existing_items = [item for item in items if Path(item).exists()]
             self.items = existing_items
-            self.current_index = min(current_index, max(0, len(existing_items) - 1))
+            
+            # Ensure index is valid: clamp between 0 and len-1, default to 0 if empty
+            if existing_items:
+                self.current_index = max(0, min(current_index, len(existing_items) - 1))
+            else:
+                self.current_index = 0
+            
             self._state_loaded_from_file = True
         else:
             self.items = []
@@ -104,6 +116,9 @@ class DesktopItemIterator:
         if not self.items:
             return None
         
+        # Ensure current index is valid before proceeding
+        self._ensure_valid_index()
+        
         if self.current_index < len(self.items) - 1:
             self.current_index += 1
             return self.items[self.current_index]
@@ -120,6 +135,9 @@ class DesktopItemIterator:
         if not self.items:
             return None
         
+        # Ensure current index is valid before proceeding
+        self._ensure_valid_index()
+        
         if self.current_index > 0:
             self.current_index -= 1
             return self.items[self.current_index]
@@ -133,7 +151,7 @@ class DesktopItemIterator:
         Returns:
             The absolute path of the current item, or None if no items
         """
-        if not self.items or self.current_index >= len(self.items):
+        if not self.items or self.current_index < 0 or self.current_index >= len(self.items):
             return None
         
         return self.items[self.current_index]
@@ -173,3 +191,15 @@ class DesktopItemIterator:
     def current_item_path(self) -> Optional[str]:
         """Get the path of the current item for actions."""
         return self.current()
+    
+    def _ensure_valid_index(self) -> None:
+        """
+        Ensure the current_index is within valid bounds.
+        This should be called after any operation that might invalidate the index.
+        """
+        if not self.items:
+            self.current_index = 0
+        elif self.current_index < 0:
+            self.current_index = 0
+        elif self.current_index >= len(self.items):
+            self.current_index = len(self.items) - 1

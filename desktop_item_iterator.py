@@ -14,76 +14,63 @@ class DesktopItemIterator:
     def __init__(self):
         """Initialize the iterator by scanning the Desktop directory."""
         self.desktop_path = Path.home() / "Desktop"
-        self.items: List[str] = []
-        self.current_index: int = 0
         self.persistence_manager = PersistenceManager()
-        self.load_state()  # Load previously saved state
-        self._scan_desktop()
-    
-    def _scan_desktop(self) -> None:
+        
+        # Scan the desktop for the current list of unhandled items
+        self.items: List[str] = self._scan_and_filter_desktop()
+        
+        # Load the previous state to determine the starting index
+        saved_items, saved_index = self.persistence_manager.load_iterator_state()
+        self.current_index: int = self._determine_starting_index(saved_items, saved_index)
+
+    def _scan_and_filter_desktop(self) -> List[str]:
         """
-        Scan the Desktop directory and filter out invisible/system files.
-        Filters out: .DS_Store, .localized, and all dotfiles (files starting with .)
+        Scan the Desktop directory, filter out unwanted files, and then
+        filter out items that have already been handled.
         """
         if not self.desktop_path.exists():
-            return
+            return []
         
         try:
-            # If we're doing a fresh scan (not loading from state), start with empty list
-            if not hasattr(self, '_state_loaded_from_file') or not self._state_loaded_from_file:
-                fresh_items = []
-            else:
-                # If state was loaded from file, don't rescan - just return
-                return
+            # Scan all items on the desktop
+            fresh_items = [
+                str(item.absolute())
+                for item in self.desktop_path.iterdir()
+                if not self._should_skip_file(item.name)
+            ]
             
-            for item in self.desktop_path.iterdir():
-                # Skip invisible/system files
-                if self._should_skip_file(item.name):
-                    continue
-                
-                # Store absolute path
-                fresh_items.append(str(item.absolute()))
-            
-            # Sort items for consistent ordering
+            # Sort for consistent order
             fresh_items.sort()
             
-            # Filter out already handled items for fresh scans
-            self.items = self.persistence_manager.filter_unhandled_items(fresh_items)
+            # Filter out items that have already been handled
+            return self.persistence_manager.filter_unhandled_items(fresh_items)
             
         except PermissionError:
             print(f"Permission denied accessing {self.desktop_path}")
+            return []
         except Exception as e:
             print(f"Error scanning desktop: {e}")
-    
-    def save_state(self) -> None:
-        """Save the current state to a JSON file for persistence."""
-        state_path = Path.home() / "desktop_cleaner_state.json"
-        state_data = {
-            "items": self.items,
-            "current_index": self.current_index
-        }
-        with open(state_path, 'w') as f:
-            json.dump(state_data, f)
-    
-    def load_state(self) -> None:
-        """Load the iterator state from persistence manager."""
-        items, current_index = self.persistence_manager.load_iterator_state()
-        if items:
-            # Filter out items that no longer exist
-            existing_items = [item for item in items if Path(item).exists()]
-            self.items = existing_items
-            
-            # Ensure index is valid: clamp between 0 and len-1, default to 0 if empty
-            if existing_items:
-                self.current_index = max(0, min(current_index, len(existing_items) - 1))
-            else:
-                self.current_index = 0
-            
-            self._state_loaded_from_file = True
-        else:
-            self.items = []
-            self.current_index = 0
-            self._state_loaded_from_file = False
+            return []
+
+    def _determine_starting_index(self, saved_items: List[str], saved_index: int) -> int:
+        """
+        Determines the starting index for the new session.
+        It tries to find the last viewed item from the previous session in the new list of items.
+        """
+        # Check if there was a valid saved state
+        if not saved_items or not (0 <= saved_index < len(saved_items)):
+            return 0  # No valid saved state, start from the beginning
+
+        # Get the path of the item from the last session
+        last_viewed_item_path = saved_items[saved_index]
+
+        # Try to find that same item in the newly scanned list
+        try:
+            new_index = self.items.index(last_viewed_item_path)
+            return new_index
+        except ValueError:
+            # The last viewed item is no longer in the list (e.g., deleted, or handled)
+            return 0
     
     def _should_skip_file(self, filename: str) -> bool:
         """

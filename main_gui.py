@@ -83,11 +83,6 @@ class DesktopCleanerGUI(QMainWindow):
         self.init_ui()
         self.init_iterator()
         self.setup_keyboard_shortcuts()
-        
-        # Auto-refresh timer (optional - refreshes every 30 seconds)
-        self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.refresh_iterator)
-        self.refresh_timer.start(30000)  # 30 seconds
     
     def init_ui(self):
         """Initialize the user interface."""
@@ -301,7 +296,7 @@ class DesktopCleanerGUI(QMainWindow):
         if self.iterator and self.iterator.current_item_path():
             current_item_path = self.iterator.current_item_path()
             self.persistence_manager.mark_item_handled(current_item_path, "left")
-        self.advance_to_next_item()
+        self.remove_current_item_and_advance()
 
     def verify_file_integrity(self, file_path: str) -> bool:
         """Verify that the file shown in preview matches the current file."""
@@ -532,6 +527,15 @@ class DesktopCleanerGUI(QMainWindow):
         # Show error dialog
         QMessageBox.critical(self, "Error", message)
     
+    def _save_current_iterator_state(self):
+        """Saves the current state of the iterator to the persistence file."""
+        if self.iterator:
+            # Ensure index is valid before saving
+            self.iterator._ensure_valid_index()
+            items = self.iterator.items
+            current_index = self.iterator.get_current_index()
+            self.persistence_manager.save_iterator_state(items, current_index)
+    
     def advance_to_next_item(self):
         """Advance to the next item without performing any action."""
         if not self.iterator:
@@ -541,6 +545,7 @@ class DesktopCleanerGUI(QMainWindow):
         if next_path:
             self.update_ui()
             self.load_current_preview()
+            self._save_current_iterator_state()
             self.status_message.setText("Moved to next item")
         else:
             self.show_completion_dialog()
@@ -561,6 +566,7 @@ class DesktopCleanerGUI(QMainWindow):
             # Update UI and load preview
             self.update_ui()
             self.load_current_preview()
+            self._save_current_iterator_state()
             
             # Check if we've processed all items
             if not self.iterator.items:
@@ -585,6 +591,7 @@ class DesktopCleanerGUI(QMainWindow):
         if next_path:
             self.update_ui()
             self.load_current_preview()
+            self._save_current_iterator_state()
             self.status_message.setText("Moved to next item")
         else:
             self.status_message.setText("Already at last item")
@@ -598,6 +605,7 @@ class DesktopCleanerGUI(QMainWindow):
         if prev_path:
             self.update_ui()
             self.load_current_preview()
+            self._save_current_iterator_state()
             self.status_message.setText("Moved to previous item")
         else:
             self.status_message.setText("Already at first item")
@@ -610,6 +618,7 @@ class DesktopCleanerGUI(QMainWindow):
         self.iterator.reset()
         self.update_ui()
         self.load_current_preview()
+        self._save_current_iterator_state()
         self.status_message.setText("Reset to first item")
     
     def refresh_iterator(self):
@@ -623,18 +632,7 @@ class DesktopCleanerGUI(QMainWindow):
     
     def closeEvent(self, event):
         """Handle application close event."""
-        # Save the iterator state on close
-        if self.iterator:
-            # Ensure index is valid before saving
-            self.iterator._ensure_valid_index()
-            items = self.iterator.items
-            current_index = self.iterator.get_current_index()
-            self.persistence_manager.save_iterator_state(items, current_index)
-        
-        # Stop the refresh timer
-        if hasattr(self, 'refresh_timer'):
-            self.refresh_timer.stop()
-        
+        # State is now saved on each navigation action, so no need to save on close.
         event.accept()
     
     def show_state_summary(self):

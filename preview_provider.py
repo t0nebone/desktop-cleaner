@@ -76,10 +76,17 @@ class ImagePreview:
                 widget.setAlignment(Qt.AlignCenter)
                 return widget, "Failed to load image"
             
-            scaled_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            widget = QLabel()
+            # Create a clickable label for the image preview
+            widget = ClickablePreviewLabel()
+            scaled_pixmap = pixmap.scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             widget.setPixmap(scaled_pixmap)
             widget.setAlignment(Qt.AlignCenter)
+            widget.setToolTip("Click to view larger preview")
+            widget.setStyleSheet("border: 1px solid #ccc; padding: 5px; background-color: white;")
+
+            # Store original image for larger preview
+            widget.original_image = pixmap
+            widget.file_path = self.file_path
             
             # Get image metadata
             file_info = Path(self.file_path).stat()

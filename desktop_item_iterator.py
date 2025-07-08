@@ -19,9 +19,8 @@ class DesktopItemIterator:
         # Scan the desktop for the current list of unhandled items
         self.items: List[str] = self._scan_and_filter_desktop()
         
-        # Load the previous state to determine the starting index
-        saved_items, saved_index = self.persistence_manager.load_iterator_state()
-        self.current_index: int = self._determine_starting_index(saved_items, saved_index)
+        # Always start at the beginning of the list
+        self.current_index: int = 0
 
     def _scan_and_filter_desktop(self) -> List[str]:
         """

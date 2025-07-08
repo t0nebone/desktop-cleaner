@@ -30,3 +30,8 @@ ehthumbs.db
 coverage*
 htmlcov/
 .coverage
+
+# Agent-specific files
+commit_message.txt
+context.txt
+PERSISTENCE_README.md

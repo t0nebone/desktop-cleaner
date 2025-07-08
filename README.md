@@ -21,7 +21,7 @@ Desktop Cleaner is a PyQt5 application designed to help you efficiently organize
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/t0nebone/desktop-cleaner.git
     cd desktop-cleaner
     ```
 

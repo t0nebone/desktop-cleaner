@@ -2,6 +2,8 @@
 
 Desktop Cleaner is a PyQt5 application designed to help you efficiently organize and declutter your desktop. It provides rich, interactive previews for a wide range of file types (images, PDFs, documents, spreadsheets, SVGs, and more), allowing you to quickly decide whether to move items to specific folders or send them to trash. With persistent state management, it streamlines the process of maintaining an organized workspace.
 
+**Note: This application is optimized for macOS. While it may run on other operating systems (Windows, Linux), some features or visual elements might behave differently due to OS-specific optimizations and file system conventions.**
+
 ## Features
 
 - **Comprehensive Preview Support**: Interactive previews for images (JPG, PNG, GIF, etc.), PDFs, text files, directories, SVG, DOCX, XLSX, RTF, and RTFD formats.

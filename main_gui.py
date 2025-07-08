@@ -21,7 +21,7 @@ from PyQt5.QtGui import QFont, QIcon
 
 from desktop_item_iterator import DesktopItemIterator
 from preview_provider import (
-    ImagePreview, PDFPreview, TextPreview, DirectoryPreview, GenericPreview
+    ImagePreview, PDFPreview, TextPreview, DirectoryPreview, GenericPreview, SvgPreview, DocxPreview, RtfPreview, XlsxPreview
 )
 from persistence_manager import PersistenceManager
 from send2trash import send2trash
@@ -59,11 +59,42 @@ class PreviewProviderManager:
         if extension == '.pdf':
             return PDFPreview(file_path)
         
+        # SVG files
+        if extension == '.svg':
+            return SvgPreview(file_path)
+
+        # Word documents
+        if extension == '.docx':
+            return DocxPreview(file_path)
+
+        # RTF documents
+        if extension in ['.rtf', '.rtfd']:
+            return RtfPreview(file_path)
+
+        # Excel spreadsheets
+        if extension == '.xlsx':
+            return XlsxPreview(file_path)
+
         # Text files
         text_extensions = {'.txt', '.py', '.js', '.html', '.css', '.json', '.xml', '.csv', '.md', '.yml', '.yaml'}
         if extension in text_extensions:
             return TextPreview(file_path)
         
+        # Excel spreadsheets
+        if extension == '.xlsx':
+            return XlsxPreview(file_path)
+
+        # Try text preview for files with no extension or unknown extensions
+        if not extension or extension not in image_extensions.union(text_extensions).union({'.pdf', '.svg', '.docx', '.rtf', '.rtfd', '.xlsx'}):
+            try:
+                # Attempt to preview as text, but catch errors
+                test_preview = TextPreview(file_path)
+                # If it doesn't raise an error during init, it's likely text-like
+                return test_preview
+            except Exception:
+                # Fallback to GenericPreview if TextPreview fails
+                pass
+
         # Default to generic preview
         return GenericPreview(file_path)
 
@@ -165,10 +196,6 @@ class DesktopCleanerGUI(QMainWindow):
         self.next_button.clicked.connect(self.next_item)
 
         # Action buttons
-        self.leave_button = QPushButton("Leave on Desktop")
-        self.leave_button.clicked.connect(self.leave_on_desktop)
-        button_layout.addWidget(self.leave_button)
-
         self.move_button = QPushButton("Move to Folder...")
         self.move_button.clicked.connect(self.move_to_folder)
         button_layout.addWidget(self.move_button)
@@ -291,13 +318,6 @@ class DesktopCleanerGUI(QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
     
-    def leave_on_desktop(self):
-        """Leave the item on the desktop and advance to the next item."""
-        if self.iterator and self.iterator.current_item_path():
-            current_item_path = self.iterator.current_item_path()
-            self.persistence_manager.mark_item_handled(current_item_path, "left")
-        self.remove_current_item_and_advance()
-
     def verify_file_integrity(self, file_path: str) -> bool:
         """Verify that the file shown in preview matches the current file."""
         try:
@@ -411,8 +431,20 @@ class DesktopCleanerGUI(QMainWindow):
             self.progress_bar.setVisible(True)
             self.progress_bar.setRange(0, 0)  # Indeterminate progress
             
-            # Initialize iterator
-            self.iterator = DesktopItemIterator()
+            # Scan desktop and filter items
+            desktop_path = Path.home() / "Desktop"
+            all_desktop_items = []
+            if desktop_path.exists():
+                for item in desktop_path.iterdir():
+                    if not self._should_skip_file(item.name):
+                        all_desktop_items.append(str(item.absolute()))
+            all_desktop_items.sort()
+            
+            # Filter out handled items using the persistence manager
+            unhandled_items = self.persistence_manager.filter_unhandled_items(all_desktop_items)
+            
+            # Initialize iterator with the unhandled items
+            self.iterator = DesktopItemIterator(unhandled_items)
             
             self.progress_bar.setVisible(False)
             
@@ -430,6 +462,22 @@ class DesktopCleanerGUI(QMainWindow):
             
         except Exception as e:
             self.handle_error(f"Failed to load desktop items: {e}")
+
+    def _should_skip_file(self, filename: str) -> bool:
+        """
+        Determine if a file should be skipped based on filtering rules.
+        Moved from DesktopItemIterator to centralize logic.
+        """
+        # Skip dotfiles (files starting with .)
+        if filename.startswith('.'):
+            return True
+        
+        # Skip specific system files
+        system_files = {'.DS_Store', '.localized'}
+        if filename in system_files:
+            return True
+        
+        return False
     
     def update_ui(self):
         """Update the UI elements based on current iterator state."""
@@ -643,7 +691,6 @@ class DesktopCleanerGUI(QMainWindow):
         message = f"""Desktop Cleaner State Summary:
 
 Sessions run: {session_count}
-Items left on desktop: {summary['left']}
 Items moved to folders: {summary['moved']}
 Items moved to trash: {summary['trashed']}
 Total items handled: {sum(summary.values())}

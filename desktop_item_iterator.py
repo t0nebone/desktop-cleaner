@@ -11,45 +11,15 @@ class DesktopItemIterator:
     filters out invisible/system files, and provides navigation methods.
     """
     
-    def __init__(self):
-        """Initialize the iterator by scanning the Desktop directory."""
-        self.desktop_path = Path.home() / "Desktop"
-        self.persistence_manager = PersistenceManager()
+    def __init__(self, items: List[str]):
+        """
+        Initialize the iterator with a specific list of items.
         
-        # Scan the desktop for the current list of unhandled items
-        self.items: List[str] = self._scan_and_filter_desktop()
-        
-        # Always start at the beginning of the list
+        Args:
+            items: A list of absolute file paths to iterate over.
+        """
+        self.items: List[str] = items
         self.current_index: int = 0
-
-    def _scan_and_filter_desktop(self) -> List[str]:
-        """
-        Scan the Desktop directory, filter out unwanted files, and then
-        filter out items that have already been handled.
-        """
-        if not self.desktop_path.exists():
-            return []
-        
-        try:
-            # Scan all items on the desktop
-            fresh_items = [
-                str(item.absolute())
-                for item in self.desktop_path.iterdir()
-                if not self._should_skip_file(item.name)
-            ]
-            
-            # Sort for consistent order
-            fresh_items.sort()
-            
-            # Filter out items that have already been handled
-            return self.persistence_manager.filter_unhandled_items(fresh_items)
-            
-        except PermissionError:
-            print(f"Permission denied accessing {self.desktop_path}")
-            return []
-        except Exception as e:
-            print(f"Error scanning desktop: {e}")
-            return []
 
     def _determine_starting_index(self, saved_items: List[str], saved_index: int) -> int:
         """

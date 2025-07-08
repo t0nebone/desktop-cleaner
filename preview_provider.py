@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFileIconProvider, QDialog, QScrollArea, QPushButton, QHBoxLayout
 from PyQt5.QtGui import QPixmap, QFont, QIcon, QCursor
 from PyQt5.QtCore import QFileInfo, Qt, pyqtSignal
+from PyQt5.QtSvg import QSvgWidget
 import os
 from pathlib import Path
 from datetime import datetime
@@ -312,7 +313,133 @@ class DirectoryPreview:
             widget.setStyleSheet("color: #dc3545; font-size: 12px;")
             return widget, f"Error: {str(e)}"
 
+class SvgPreview:
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+    def get_preview(self):
+        try:
+            widget = QSvgWidget(self.file_path)
+            widget.setMinimumSize(200, 200)
+            widget.setStyleSheet("border: 1px solid #ccc; padding: 5px; background-color: white;")
+
+            file_info = Path(self.file_path).stat()
+            size_kb = file_info.st_size / 1024
+            modified = datetime.fromtimestamp(file_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            metadata = f"SVG Image\nSize: {size_kb:.1f} KB\nModified: {modified}"
+
+            return widget, metadata
+        except Exception as e:
+            widget = QLabel(f"Error loading SVG: {str(e)}")
+            widget.setAlignment(Qt.AlignCenter)
+            return widget, f"Error: {str(e)}"
+
+class DocxPreview:
+    def __init__(self, file_path, lines=20):
+        self.file_path = file_path
+        self.lines = lines
+
+    def get_preview(self):
+        try:
+            import docx
+            doc = docx.Document(self.file_path)
+            content = '\n'.join([p.text for p in doc.paragraphs[:self.lines]])
+
+            if len(content) > 1000:
+                content = content[:1000] + "..."
+
+            widget = QLabel(content)
+            text_font = QFont()
+            text_font.setPointSize(9)
+            text_font.setFamily("Helvetica")
+            widget.setFont(text_font)
+            widget.setWordWrap(True)
+            widget.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+
+            file_info = Path(self.file_path).stat()
+            size_kb = file_info.st_size / 1024
+            modified = datetime.fromtimestamp(file_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            metadata = f"Word Document\nSize: {size_kb:.1f} KB\nModified: {modified}"
+
+            return widget, metadata
+        except Exception as e:
+            widget = QLabel(f"Error reading DOCX: {str(e)}")
+            widget.setAlignment(Qt.AlignCenter)
+            return widget, f"Error: {str(e)}"
+
+class RtfPreview:
+    def __init__(self, file_path, lines=20):
+        self.file_path = file_path
+        self.lines = lines
+
+    def get_preview(self):
+        try:
+            from striprtf.striprtf import rtf_to_text
+            with open(self.file_path, 'r') as f:
+                rtf_content = f.read()
+            content = rtf_to_text(rtf_content)
+
+            content = '\n'.join(content.splitlines()[:self.lines])
+
+            if len(content) > 1000:
+                content = content[:1000] + "..."
+
+            widget = QLabel(content)
+            text_font = QFont()
+            text_font.setPointSize(9)
+            text_font.setFamily("Helvetica")
+            widget.setFont(text_font)
+            widget.setWordWrap(True)
+            widget.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+
+            file_info = Path(self.file_path).stat()
+            size_kb = file_info.st_size / 1024
+            modified = datetime.fromtimestamp(file_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            metadata = f"RTF Document\nSize: {size_kb:.1f} KB\nModified: {modified}"
+
+            return widget, metadata
+        except Exception as e:
+            widget = QLabel(f"Error reading RTF: {str(e)}")
+            widget.setAlignment(Qt.AlignCenter)
+            return widget, f"Error: {str(e)}"
+
+class XlsxPreview:
+    def __init__(self, file_path, rows=10, cols=5):
+        self.file_path = file_path
+        self.rows = rows
+        self.cols = cols
+
+    def get_preview(self):
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(self.file_path)
+            sheet = wb.active
+            
+            content = ""
+            for row in sheet.iter_rows(max_row=self.rows, max_col=self.cols):
+                content += '\t'.join([str(cell.value or '') for cell in row]) + '\n'
+
+            widget = QLabel(content)
+            text_font = QFont()
+            text_font.setPointSize(9)
+            text_font.setFamily("Monaco")
+            widget.setFont(text_font)
+            widget.setWordWrap(False)
+            widget.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+
+            file_info = Path(self.file_path).stat()
+            size_kb = file_info.st_size / 1024
+            modified = datetime.fromtimestamp(file_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            metadata = f"Excel Spreadsheet\nSize: {size_kb:.1f} KB\nModified: {modified}"
+
+            return widget, metadata
+        except Exception as e:
+            widget = QLabel(f"Error reading XLSX: {str(e)}")
+            widget.setAlignment(Qt.AlignCenter)
+            return widget, f"Error: {str(e)}"
+
 class GenericPreview:
+
     def __init__(self, file_path):
         self.file_path = file_path
 

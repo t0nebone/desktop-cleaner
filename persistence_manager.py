@@ -77,7 +77,7 @@ class PersistenceManager:
         
         Args:
             file_path: Path to the file that was handled
-            action: Action taken ("left", "moved", "trashed")
+            action: Action taken ("moved", "trashed")
             destination: Destination path if the item was moved
         """
         path_hash = self.get_path_hash(file_path)
@@ -125,7 +125,7 @@ class PersistenceManager:
         Returns:
             Dictionary with counts for each action type
         """
-        summary = {"left": 0, "moved": 0, "trashed": 0}
+        summary = {"moved": 0, "trashed": 0}
         
         for item_info in self.state["handled_items"].values():
             action = item_info.get("action", "unknown")
@@ -143,17 +143,37 @@ class PersistenceManager:
         """
         return list(self.state["handled_items"].values())
     
-    def filter_unhandled_items(self, items: List[str]) -> List[str]:
+    def filter_unhandled_items(self, current_desktop_items: List[str]) -> List[str]:
         """
-        Filter out items that have already been handled.
-        
+        Filters out items that should not be presented to the user again.
+        An item is considered handled and filtered out if:
+        1. It was explicitly 'left' on the desktop.
+        2. It was 'moved' or 'trashed' AND is no longer present on the desktop.
+        If a 'moved' or 'trashed' item reappears on the desktop, it is considered unhandled.
+
         Args:
-            items: List of file paths
-            
+            current_desktop_items: A list of absolute file paths currently found on the desktop.
+
         Returns:
-            List of file paths that haven't been handled yet
+            List of file paths that should be presented to the user.
         """
-        return [item for item in items if not self.is_item_handled(item)]
+        unhandled_items = []
+        for item_path in current_desktop_items:
+            path_hash = self.get_path_hash(item_path)
+            handled_info = self.state["handled_items"].get(path_hash)
+
+            if handled_info:
+                action = handled_info.get("action")
+                if action in ["moved", "trashed"]:
+                    # If it was moved/trashed, and it's now back on the desktop,
+                    # it should be considered unhandled again.
+                    # We don't filter it out.
+                    pass # It's back on desktop, so it's unhandled.
+            
+            # If not handled, or if handled by move/trash and now back on desktop
+            unhandled_items.append(item_path)
+            
+        return unhandled_items
     
     def save_iterator_state(self, items: List[str], current_index: int) -> None:
         """

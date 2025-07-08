@@ -4,6 +4,10 @@ Desktop Cleaner is a PyQt5 application designed to help you efficiently organize
 
 **Note: This application is optimized for macOS. While it may run on other operating systems (Windows, Linux), some features or visual elements might behave differently due to OS-specific optimizations and file system conventions.**
 
+## About This Project
+
+This project is a **Vibe Code experiment** - a casual coding session exploring different AI-powered development tools. It was started using Warp Terminal's AI agent to build the initial structure and core functionality, then finished up with gemini-cli to experiment with both tools and compare their development workflows.
+
 ## Features
 
 - **Comprehensive Preview Support**: Interactive previews for images (JPG, PNG, GIF, etc.), PDFs, text files, directories, SVG, DOCX, XLSX, RTF, and RTFD formats.
